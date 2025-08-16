@@ -1,0 +1,47 @@
+# Build artifacts
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Internal build files (NEVER commit these)
+BUILD.log
+BUILD.pid
+NOTIFIED.flag
+CONTEXT.md
+PLAN.md
+PRD.md
+*_REVIEW.md
+REMEDIATION.md
+FAILURE_REPORT.md
+PHASES_COMPLETE.flag
+KNOWN_ISSUES.md
+
+# Environment
+.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
