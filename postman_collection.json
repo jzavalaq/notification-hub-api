@@ -1,0 +1,363 @@
+{
+  "info": {
+    "name": "Notification Hub API",
+    "description": "Multi-channel notification and communication hub API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "item": [
+        {
+          "name": "Create Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"welcome-email\",\n  \"name\": \"Welcome Email\",\n  \"subject\": \"Welcome {{name}}!\",\n  \"body\": \"Hello {{name}}, welcome to our service!\",\n  \"channel\": \"EMAIL\",\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "templates"]
+            }
+          }
+        },
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "templates"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Template by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "templates", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Template by Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates/code/welcome-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "templates", "code", "welcome-email"]
+            }
+          }
+        },
+        {
+          "name": "Update Template",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Welcome Email\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "templates", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Template",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/templates/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "templates", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Preferences",
+      "item": [
+        {
+          "name": "Create Preferences",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-123\",\n  \"enabledChannels\": [\"EMAIL\", \"SMS\"],\n  \"timezone\": \"America/New_York\",\n  \"defaultPriority\": \"NORMAL\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Get User Preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/preferences/user-123",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "preferences", "user-123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-123\",\n  \"notificationType\": \"welcome\",\n  \"channel\": \"EMAIL\",\n  \"recipient\": \"user@example.com\",\n  \"subject\": \"Welcome!\",\n  \"content\": \"Welcome to our service!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/send",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "send"]
+            }
+          }
+        },
+        {
+          "name": "Send Batch Notifications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notificationType\": \"newsletter\",\n  \"channel\": \"EMAIL\",\n  \"subject\": \"Weekly Newsletter\",\n  \"content\": \"Here's your weekly update!\",\n  \"recipients\": [\n    {\"userId\": \"user-1\", \"recipient\": \"user1@example.com\"},\n    {\"userId\": \"user-2\", \"recipient\": \"user2@example.com\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/batch",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "batch"]
+            }
+          }
+        },
+        {
+          "name": "Get Notification",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get User Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/user/user-123?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "user", "user-123"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark as Delivered",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/1/deliver",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "1", "deliver"]
+            }
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/1/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "1", "read"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Create Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-123\",\n  \"name\": \"My Webhook\",\n  \"url\": \"https://example.com/webhook\",\n  \"subscribedEvents\": [\"NOTIFICATION_SENT\", \"NOTIFICATION_DELIVERED\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/webhooks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "webhooks"]
+            }
+          }
+        },
+        {
+          "name": "List User Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/webhooks/user/user-123",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "webhooks", "user", "user-123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "metrics"]
+            }
+          }
+        },
+        {
+          "name": "Get Channel Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/channels",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "channels"]
+            }
+          }
+        },
+        {
+          "name": "Get User Engagement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/engagement/user-123",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "engagement", "user-123"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
