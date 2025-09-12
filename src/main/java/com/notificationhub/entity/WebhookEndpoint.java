@@ -1,5 +1,6 @@
 package com.notificationhub.entity;
 
+import com.notificationhub.config.EncryptedStringConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,6 +43,7 @@ public class WebhookEndpoint {
     private String url;
 
     @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String secret;
 
     @ElementCollection

@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+
 /**
  * Service for managing webhook endpoints and deliveries.
  * <p>
@@ -98,11 +100,36 @@ public class WebhookService {
         return toResponse(webhook);
     }
 
+    /**
+     * Retrieves all webhooks for a specific user with pagination.
+     *
+     * @param userId the user ID
+     * @param page page number (0-indexed)
+     * @param size page size
+     * @return paginated list of webhooks for the user
+     */
     @Transactional(readOnly = true)
-    public List<WebhookDto.Response> getUserWebhooks(String userId) {
-        return webhookRepository.findByUserId(userId).stream()
+    public PageResponse<WebhookDto.Response> getUserWebhooks(String userId, int page, int size) {
+        int safeSize = Math.min(size, AppConstants.MAX_PAGE_SIZE);
+        if (page < 0) page = AppConstants.DEFAULT_PAGE_NUMBER;
+        if (safeSize < 1) safeSize = AppConstants.DEFAULT_PAGE_SIZE;
+
+        Pageable pageable = PageRequest.of(page, safeSize, Sort.by("createdAt").descending());
+        Page<WebhookEndpoint> webhooks = webhookRepository.findByUserId(userId, pageable);
+
+        List<WebhookDto.Response> content = webhooks.getContent().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+
+        return PageResponse.<WebhookDto.Response>builder()
+                .content(content)
+                .pageNumber(webhooks.getNumber())
+                .pageSize(webhooks.getSize())
+                .totalElements(webhooks.getTotalElements())
+                .totalPages(webhooks.getTotalPages())
+                .first(webhooks.isFirst())
+                .last(webhooks.isLast())
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -248,7 +275,7 @@ public class WebhookService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public void processRetries() {
         List<WebhookDelivery> pending = deliveryRepository
                 .findByStatusAndNextRetryAtBefore(WebhookDelivery.DeliveryStatus.RETRYING, Instant.now());

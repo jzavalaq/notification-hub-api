@@ -101,24 +101,23 @@ public class AnalyticsService {
         if (startDate == null) startDate = Instant.now().minus(AppConstants.DEFAULT_ANALYTICS_DAYS, ChronoUnit.DAYS);
         if (endDate == null) endDate = Instant.now();
 
-        List<Notification> notifications = notificationRepository.findByUserIdAndStatus(userId, Notification.NotificationStatus.DELIVERED);
-        notifications.addAll(notificationRepository.findByUserIdAndStatus(userId, Notification.NotificationStatus.READ));
+        // Use count queries instead of fetching all entities to prevent memory issues
+        long totalDelivered = notificationRepository.countByUserIdAndStatuses(userId,
+                java.util.Arrays.asList(Notification.NotificationStatus.DELIVERED, Notification.NotificationStatus.READ));
+        long totalRead = notificationRepository.countByUserIdAndStatuses(userId,
+                java.util.Collections.singletonList(Notification.NotificationStatus.READ));
+        double readRate = totalDelivered > 0 ? (double) totalRead / totalDelivered * 100 : 0;
 
-        long totalReceived = notifications.size();
-        long totalRead = notificationRepository.findByUserIdAndStatus(userId, Notification.NotificationStatus.READ).size();
-        double readRate = totalReceived > 0 ? (double) totalRead / totalReceived * 100 : 0;
-
+        // Use aggregation query for channel breakdown
         Map<String, Long> readsByChannel = new HashMap<>();
-        for (Notification n : notifications) {
-            if (n.getStatus() == Notification.NotificationStatus.READ) {
-                String channel = n.getChannel().name();
-                readsByChannel.merge(channel, 1L, Long::sum);
-            }
+        List<Object[]> channelCounts = notificationRepository.countByUserIdAndStatusGroupByChannel(userId, Notification.NotificationStatus.READ);
+        for (Object[] row : channelCounts) {
+            readsByChannel.put(((NotificationTemplate.ChannelType) row[0]).name(), (Long) row[1]);
         }
 
         return AnalyticsDto.EngagementStats.builder()
                 .userId(userId)
-                .totalReceived(totalReceived)
+                .totalReceived(totalDelivered)
                 .totalRead(totalRead)
                 .readRate(Math.round(readRate * 100.0) / 100.0)
                 .readsByChannel(readsByChannel)
