@@ -46,6 +46,7 @@ public class NotificationService {
     private final PreferenceService preferenceService;
     private final TemplateService templateService;
     private final WebhookService webhookService;
+    private final WebSocketNotificationService webSocketNotificationService;
 
     @Transactional
     public NotificationDto.Response sendNotification(NotificationDto.SendRequest request) {
@@ -109,6 +110,7 @@ public class NotificationService {
     }
 
     @Async
+    @Transactional
     public CompletableFuture<Void> processNotificationAsync(Notification notification) {
         try {
             processNotification(notification);
@@ -131,6 +133,14 @@ public class NotificationService {
 
                 // Trigger webhooks
                 webhookService.triggerWebhooks(notification, WebhookEndpoint.WebhookEventType.NOTIFICATION_SENT);
+
+                // Send real-time notification via WebSocket
+                webSocketNotificationService.sendToUser(
+                    notification.getUserId(),
+                    "NOTIFICATION",
+                    notification.getSubject() != null ? notification.getSubject() : "New Notification",
+                    notification.getContent()
+                );
             } else {
                 handleFailure(notification, "Failed to send to channel");
             }
@@ -256,6 +266,14 @@ public class NotificationService {
         createAuditRecord(notification, NotificationAudit.AuditAction.DELIVERED, null, notification.getStatus().name());
         webhookService.triggerWebhooks(notification, WebhookEndpoint.WebhookEventType.NOTIFICATION_DELIVERED);
 
+        // Send real-time status update via WebSocket
+        webSocketNotificationService.sendToUser(
+            notification.getUserId(),
+            "DELIVERED",
+            "Notification Delivered",
+            "Your notification has been delivered"
+        );
+
         return toResponse(notification);
     }
 
@@ -270,6 +288,14 @@ public class NotificationService {
 
         createAuditRecord(notification, NotificationAudit.AuditAction.READ, null, notification.getStatus().name());
         webhookService.triggerWebhooks(notification, WebhookEndpoint.WebhookEventType.NOTIFICATION_READ);
+
+        // Send real-time status update via WebSocket
+        webSocketNotificationService.sendToUser(
+            notification.getUserId(),
+            "READ",
+            "Notification Read",
+            "Your notification has been marked as read"
+        );
 
         return toResponse(notification);
     }

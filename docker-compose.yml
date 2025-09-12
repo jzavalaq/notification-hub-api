@@ -8,10 +8,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - DB_URL=jdbc:postgresql://db:5432/notificationhub
-      - DB_USERNAME=notificationhub
-      - DB_PASSWORD=notificationhub_secret
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - DB_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-notificationhub}
+      - DB_USERNAME=${POSTGRES_USER:-notificationhub}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-notificationhub_secret}
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production-min-256-bits}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -34,13 +34,13 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=notificationhub
-      - POSTGRES_USER=notificationhub
-      - POSTGRES_PASSWORD=notificationhub_secret
+      - POSTGRES_DB=${POSTGRES_DB:-notificationhub}
+      - POSTGRES_USER=${POSTGRES_USER:-notificationhub}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-notificationhub_secret}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notificationhub -d notificationhub"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-notificationhub} -d ${POSTGRES_DB:-notificationhub}"]
       interval: 10s
       timeout: 5s
       retries: 5

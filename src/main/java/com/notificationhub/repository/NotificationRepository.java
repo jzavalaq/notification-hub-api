@@ -29,6 +29,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.status = :status")
     List<Notification> findByUserIdAndStatus(@Param("userId") String userId, @Param("status") Notification.NotificationStatus status);
 
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.userId = :userId AND n.status IN :statuses")
+    Long countByUserIdAndStatuses(@Param("userId") String userId, @Param("statuses") List<Notification.NotificationStatus> statuses);
+
+    @Query("SELECT n.channel, COUNT(n) FROM Notification n WHERE n.userId = :userId AND n.status = :status GROUP BY n.channel")
+    List<Object[]> countByUserIdAndStatusGroupByChannel(@Param("userId") String userId, @Param("status") Notification.NotificationStatus status);
+
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.channel = :channel AND n.createdAt BETWEEN :start AND :end")
     Long countByChannelAndDateRange(@Param("channel") NotificationTemplate.ChannelType channel, @Param("start") Instant start, @Param("end") Instant end);
 

@@ -130,5 +130,16 @@ public class GlobalExceptionHandler {
         private String error;
         private String message;
         private Map<String, String> errors;
+
+        /**
+         * Converts to the standard API error response format.
+         * @return ApiErrorResponse with error message and status code
+         */
+        public ApiErrorResponse toApiErrorResponse() {
+            String errorMessage = this.errors != null && !this.errors.isEmpty()
+                    ? this.message + ": " + this.errors.toString()
+                    : this.message;
+            return new ApiErrorResponse(errorMessage, this.status);
+        }
     }
 }

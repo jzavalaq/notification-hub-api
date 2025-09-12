@@ -8,6 +8,7 @@ import com.notificationhub.exception.ResourceNotFoundException;
 import com.notificationhub.repository.NotificationTemplateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -85,8 +86,17 @@ public class TemplateService {
         return toResponse(template);
     }
 
+    /**
+     * Retrieves a template by its unique code.
+     * Results are cached to improve performance for frequently accessed templates.
+     *
+     * @param code the template code
+     * @return the template
+     */
     @Transactional(readOnly = true)
+    @Cacheable(value = "templates", key = "#code")
     public TemplateDto.Response getTemplateByCode(String code) {
+        log.debug("Fetching template with code (cached): {}", code);
         NotificationTemplate template = templateRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Template", "code", code));
         return toResponse(template);

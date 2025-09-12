@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 /**
  * REST controller for managing webhook endpoints.
@@ -62,17 +61,22 @@ public class WebhookController {
     }
 
     /**
-     * Retrieves all webhooks for a specific user.
+     * Retrieves webhooks for a specific user with pagination support.
      *
      * @param userId the user ID
-     * @return list of webhooks for the user
+     * @param page page number (0-indexed)
+     * @param size page size
+     * @return paginated list of webhooks for the user
      */
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get user webhooks")
     @ApiResponse(responseCode = "200", description = "Webhooks retrieved successfully")
-    public ResponseEntity<List<WebhookDto.Response>> getUserWebhooks(@PathVariable String userId) {
-        log.debug("Fetching webhooks for user: {}", userId);
-        return ResponseEntity.ok(webhookService.getUserWebhooks(userId));
+    public ResponseEntity<PageResponse<WebhookDto.Response>> getUserWebhooks(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.debug("Fetching webhooks for user: {} - page: {}, size: {}", userId, page, size);
+        return ResponseEntity.ok(webhookService.getUserWebhooks(userId, page, size));
     }
 
     /**

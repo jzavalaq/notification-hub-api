@@ -75,7 +75,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/notifications")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns("${app.cors.allowed-origins:http://localhost:3000}".split(","))
                 .withSockJS();
     }
 

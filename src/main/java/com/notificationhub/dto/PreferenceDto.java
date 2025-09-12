@@ -13,12 +13,19 @@ import java.time.LocalTime;
 import java.util.Set;
 
 /**
- * Data Transfer Objects for user preference operations.
+ * Data Transfer Objects for user notification preference operations.
+ * <p>
+ * Contains request and response DTOs for creating, updating, and retrieving
+ * user notification preferences including channel settings and quiet hours.
+ * </p>
  */
 public class PreferenceDto {
 
     /**
      * Request DTO for creating user notification preferences.
+     * <p>
+     * Required fields: userId. All other fields have sensible defaults.
+     * </p>
      */
     @Data
     @Builder
@@ -38,6 +45,9 @@ public class PreferenceDto {
 
     /**
      * Request DTO for updating user notification preferences.
+     * <p>
+     * All fields are optional - only provided fields will be updated.
+     * </p>
      */
     @Data
     @Builder
@@ -54,6 +64,9 @@ public class PreferenceDto {
 
     /**
      * Response DTO for user preference operations.
+     * <p>
+     * Contains complete preference information including metadata.
+     * </p>
      */
     @Data
     @Builder

@@ -1,14 +1,14 @@
 # Development Profile - H2 In-Memory Database
 spring:
   datasource:
-    url: jdbc:h2:mem:notificationhub
+    url: jdbc:h2:mem:notificationhub;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: false
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
@@ -19,7 +19,7 @@ spring:
   flyway:
     enabled: false
 
-# Redis disabled in dev
+# Redis disabled in dev (optional)
   data:
     redis:
       host: localhost
@@ -28,5 +28,6 @@ spring:
 # Logging
 logging:
   level:
+    root: INFO
     com.notificationhub: DEBUG
     org.springframework.security: DEBUG

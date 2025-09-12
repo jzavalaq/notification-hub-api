@@ -32,35 +32,90 @@ A multi-channel notification and communication hub supporting email, SMS, push n
 
 ## Quick Start
 
+### Development Mode
+
 ```bash
 # Clone and run
 git clone https://github.com/jzavalaq/notification-hub-api.git
 cd notification-hub-api
 
-# Development mode
+# Run with Maven (uses H2 in-memory database)
 mvn spring-boot:run
 
-# Docker Compose
+# App available at http://localhost:8080
+# Swagger UI at http://localhost:8080/swagger-ui.html
+# H2 Console at http://localhost:8080/h2-console (when H2_CONSOLE_ENABLED=true)
+```
+
+### Quick Start with Docker Compose (Recommended for Production-like Testing)
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your values (especially JWT_SECRET and DB_PASSWORD)
+nano .env
+
+# Start all services (app + PostgreSQL + Redis)
 docker-compose up -d
+
+# Check logs
+docker-compose logs -f app
+
+# App available at http://localhost:8080
+# Swagger UI at http://localhost:8080/swagger-ui.html
+# Health check at http://localhost:8080/actuator/health
+```
+
+## Docker Run
+
+```bash
+# Build the Docker image
+docker build -t notification-hub-api .
+
+# Run with environment variables
+docker run -d \
+  -p 8080:8080 \
+  -e JWT_SECRET=your-secure-jwt-secret-min-256-bits \
+  -e DB_URL=jdbc:postgresql://postgres:5432/notificationhub \
+  -e DB_USERNAME=notificationhub \
+  -e DB_PASSWORD=your-password \
+  -e ALLOWED_ORIGINS=http://localhost:3000 \
+  notification-hub-api
+
+# Run with docker-compose (recommended)
+docker-compose up -d
+```
+
+## Prerequisites
+
+- Java 21 or higher
+- Maven 3.8+
+- PostgreSQL 15+ (production) or H2 (development)
+- Redis 7+ (optional, for caching)
+- Docker and Docker Compose (for containerized deployment)
+
+## Build Instructions
+
+```bash
+# Compile the project
+mvn compile
+
+# Run tests
+mvn test
+
+# Package the application
+mvn package -DskipTests
+
+# Run the JAR
+java -jar target/notification-hub-api-1.0.0-SNAPSHOT.jar
 ```
 
 ## API Examples
 
-### Authentication
-
-```bash
-# Register
-curl -X POST http://localhost:8080/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"user1","email":"user@example.com","password":"Secure123!"}'
-
-# Login
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"user1","password":"Secure123!"}'
-```
-
 ### Templates
+
+Note: This API uses JWT authentication. Configure your JWT_SECRET in the environment variables or .env file before making authenticated requests.
 
 ```bash
 TOKEN="your-jwt-token"
@@ -76,6 +131,10 @@ curl -X POST http://localhost:8080/api/v1/templates \
     "body": "Hello {{userName}}, welcome to our platform!",
     "variables": ["userName"]
   }'
+
+# List templates with pagination
+curl -X GET "http://localhost:8080/api/v1/templates?page=0&size=20" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Send Notifications
@@ -91,6 +150,10 @@ curl -X POST http://localhost:8080/api/v1/notifications/send \
     "variables": {"userName": "John"},
     "channels": ["EMAIL"]
   }'
+
+# Get user notifications with pagination
+curl -X GET "http://localhost:8080/api/v1/notifications/user/user123?page=0&size=20" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
@@ -229,6 +292,14 @@ curl -X POST http://localhost:8080/api/v1/webhooks \
     "events": ["notification.delivered", "notification.failed"],
     "secret": "webhook-secret-key"
   }'
+
+# List all webhooks with pagination
+curl -X GET "http://localhost:8080/api/v1/webhooks?page=0&size=20" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get webhooks for a specific user with pagination
+curl -X GET "http://localhost:8080/api/v1/webhooks/user/user123?page=0&size=20" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Environment Variables
