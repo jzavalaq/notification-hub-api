@@ -12,14 +12,20 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.Set;
 
+/**
+ * Data Transfer Objects for user preference operations.
+ */
 public class PreferenceDto {
 
+    /**
+     * Request DTO for creating user notification preferences.
+     */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateRequest {
-        @NotBlank
+        @NotBlank(message = "User ID is required")
         private String userId;
 
         private Set<NotificationTemplate.ChannelType> enabledChannels;
@@ -30,6 +36,9 @@ public class PreferenceDto {
         private NotificationPreference.Priority defaultPriority;
     }
 
+    /**
+     * Request DTO for updating user notification preferences.
+     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -43,6 +52,9 @@ public class PreferenceDto {
         private NotificationPreference.Priority defaultPriority;
     }
 
+    /**
+     * Response DTO for user preference operations.
+     */
     @Data
     @Builder
     @NoArgsConstructor

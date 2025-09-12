@@ -9,7 +9,12 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 @Entity
-@Table(name = "webhook_deliveries")
+@Table(name = "webhook_deliveries", indexes = {
+    @Index(name = "idx_webhook_deliveries_webhook_id", columnList = "webhook_id"),
+    @Index(name = "idx_webhook_deliveries_status", columnList = "status"),
+    @Index(name = "idx_webhook_deliveries_next_retry_at", columnList = "nextRetryAt"),
+    @Index(name = "idx_webhook_deliveries_status_retry", columnList = "status, nextRetryAt")
+})
 @Data
 @Builder
 @NoArgsConstructor

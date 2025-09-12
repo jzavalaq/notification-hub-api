@@ -6,6 +6,7 @@ import com.notificationhub.entity.NotificationTemplate;
 import com.notificationhub.exception.DuplicateResourceException;
 import com.notificationhub.exception.ResourceNotFoundException;
 import com.notificationhub.repository.NotificationPreferenceRepository;
+import com.notificationhub.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,13 @@ import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 
+/**
+ * Service for managing user notification preferences.
+ * <p>
+ * Handles user preferences for notification channels, opt-out types,
+ * quiet hours, and default priority settings.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -36,7 +44,7 @@ public class PreferenceService {
                 .optedOutTypes(request.getOptedOutTypes() != null ? request.getOptedOutTypes() : new HashSet<>())
                 .quietHoursStart(request.getQuietHoursStart())
                 .quietHoursEnd(request.getQuietHoursEnd())
-                .timezone(request.getTimezone() != null ? request.getTimezone() : "UTC")
+                .timezone(request.getTimezone() != null ? request.getTimezone() : AppConstants.DEFAULT_TIMEZONE)
                 .defaultPriority(request.getDefaultPriority() != null ? request.getDefaultPriority() : NotificationPreference.Priority.NORMAL)
                 .build();
 
@@ -79,7 +87,7 @@ public class PreferenceService {
                         .userId(userId)
                         .enabledChannels(new HashSet<>())
                         .optedOutTypes(new HashSet<>())
-                        .timezone("UTC")
+                        .timezone(AppConstants.DEFAULT_TIMEZONE)
                         .defaultPriority(NotificationPreference.Priority.NORMAL)
                         .build());
     }
@@ -129,6 +137,7 @@ public class PreferenceService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Optional<NotificationPreference> findByUserId(String userId) {
         return preferenceRepository.findByUserId(userId);
     }

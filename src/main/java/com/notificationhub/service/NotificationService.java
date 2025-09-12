@@ -8,6 +8,7 @@ import com.notificationhub.exception.ResourceNotFoundException;
 import com.notificationhub.repository.NotificationAuditRepository;
 import com.notificationhub.repository.NotificationRepository;
 import com.notificationhub.repository.NotificationTemplateRepository;
+import com.notificationhub.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +24,17 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+/**
+ * Service for sending and managing notifications.
+ * <p>
+ * Handles notification creation, delivery across multiple channels,
+ * status tracking, and retry logic for failed notifications.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -35,7 +46,6 @@ public class NotificationService {
     private final PreferenceService preferenceService;
     private final TemplateService templateService;
     private final WebhookService webhookService;
-    private static final int MAX_PAGE_SIZE = 100;
 
     @Transactional
     public NotificationDto.Response sendNotification(NotificationDto.SendRequest request) {
@@ -80,7 +90,7 @@ public class NotificationService {
                 .priority(request.getPriority() != null ? request.getPriority() :
                         (preference != null ? preference.getDefaultPriority() : NotificationPreference.Priority.NORMAL))
                 .scheduledAt(request.getScheduledAt())
-                .maxRetries(3)
+                .maxRetries(AppConstants.DEFAULT_MAX_RETRIES)
                 .retryCount(0)
                 .build();
 
@@ -186,30 +196,42 @@ public class NotificationService {
 
     @Transactional
     public List<NotificationDto.Response> sendBatchNotifications(NotificationDto.BatchSendRequest request) {
-        return request.getRecipients().stream()
-                .map(recipient -> {
-                    NotificationDto.SendRequest sendRequest = NotificationDto.SendRequest.builder()
-                            .userId(recipient.getUserId())
-                            .notificationType(request.getNotificationType())
-                            .channel(request.getChannel())
-                            .recipient(recipient.getRecipient())
-                            .subject(request.getSubject())
-                            .content(request.getContent())
-                            .templateCode(request.getTemplateCode())
-                            .templateVariables(mergeVariables(request.getTemplateVariables(), recipient.getVariables()))
-                            .priority(request.getPriority())
-                            .scheduledAt(request.getScheduledAt())
-                            .build();
+        // Use parallel processing for batch notifications
+        ExecutorService executor = Executors.newFixedThreadPool(
+                Math.min(request.getRecipients().size(), AppConstants.MAX_BATCH_PARALLEL_THREADS));
 
-                    try {
-                        return sendNotification(sendRequest);
-                    } catch (Exception e) {
-                        log.error("Failed to send notification to {}: {}", recipient.getRecipient(), e.getMessage());
-                        return null;
-                    }
-                })
-                .filter(n -> n != null)
-                .collect(Collectors.toList());
+        try {
+            List<CompletableFuture<NotificationDto.Response>> futures = request.getRecipients().stream()
+                    .map(recipient -> CompletableFuture.supplyAsync(() -> {
+                        NotificationDto.SendRequest sendRequest = NotificationDto.SendRequest.builder()
+                                .userId(recipient.getUserId())
+                                .notificationType(request.getNotificationType())
+                                .channel(request.getChannel())
+                                .recipient(recipient.getRecipient())
+                                .subject(request.getSubject())
+                                .content(request.getContent())
+                                .templateCode(request.getTemplateCode())
+                                .templateVariables(mergeVariables(request.getTemplateVariables(), recipient.getVariables()))
+                                .priority(request.getPriority())
+                                .scheduledAt(request.getScheduledAt())
+                                .build();
+
+                        try {
+                            return sendNotification(sendRequest);
+                        } catch (Exception e) {
+                            log.error("Failed to send notification to {}: {}", recipient.getRecipient(), e.getMessage());
+                            return null;
+                        }
+                    }, executor))
+                    .collect(Collectors.toList());
+
+            return futures.stream()
+                    .map(CompletableFuture::join)
+                    .filter(n -> n != null)
+                    .collect(Collectors.toList());
+        } finally {
+            executor.shutdown();
+        }
     }
 
     private Map<String, String> mergeVariables(Map<String, String> base, Map<String, String> override) {
@@ -253,6 +275,7 @@ public class NotificationService {
     }
 
     @Transactional
+    @Scheduled(fixedRate = 60000) // Run every minute
     public void processScheduledNotifications() {
         List<Notification> scheduled = notificationRepository
                 .findByStatusAndScheduledAtBefore(Notification.NotificationStatus.PENDING, Instant.now());
@@ -267,9 +290,10 @@ public class NotificationService {
     }
 
     @Transactional
+    @Scheduled(fixedRate = 300000) // Run every 5 minutes
     public void retryFailedNotifications() {
         List<Notification> failed = notificationRepository
-                .findByStatusAndRetryCountLessThan(Notification.NotificationStatus.FAILED, 3);
+                .findByStatusAndRetryCountLessThan(Notification.NotificationStatus.FAILED, AppConstants.DEFAULT_MAX_RETRIES);
 
         for (Notification notification : failed) {
             notification.setStatus(Notification.NotificationStatus.QUEUED);
@@ -289,9 +313,9 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public PageResponse<NotificationDto.Response> getUserNotifications(String userId, int page, int size) {
-        int safeSize = Math.min(size, MAX_PAGE_SIZE);
-        if (page < 0) page = 0;
-        if (safeSize < 1) safeSize = 10;
+        int safeSize = Math.min(size, AppConstants.MAX_PAGE_SIZE);
+        if (page < 0) page = AppConstants.DEFAULT_PAGE_NUMBER;
+        if (safeSize < 1) safeSize = AppConstants.DEFAULT_PAGE_SIZE;
 
         Pageable pageable = PageRequest.of(page, safeSize, Sort.by("createdAt").descending());
         Page<Notification> notifications = notificationRepository.findByUserId(userId, pageable);

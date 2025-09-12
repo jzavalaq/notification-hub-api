@@ -10,8 +10,22 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Entity representing a notification message.
+ * <p>
+ * Stores notification details including recipient, content, status,
+ * and delivery tracking information across multiple channels.
+ * </p>
+ */
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", indexes = {
+    @Index(name = "idx_notifications_user_id", columnList = "user_id"),
+    @Index(name = "idx_notifications_status", columnList = "status"),
+    @Index(name = "idx_notifications_channel", columnList = "channel"),
+    @Index(name = "idx_notifications_created_at", columnList = "createdAt"),
+    @Index(name = "idx_notifications_scheduled_at", columnList = "scheduledAt"),
+    @Index(name = "idx_notifications_status_retry", columnList = "status, retryCount")
+})
 @Data
 @Builder
 @NoArgsConstructor

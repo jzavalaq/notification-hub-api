@@ -8,8 +8,14 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Data Transfer Objects for analytics operations.
+ */
 public class AnalyticsDto {
 
+    /**
+     * DTO containing overall notification metrics.
+     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -25,6 +31,9 @@ public class AnalyticsDto {
         private Map<String, Long> byStatus;
     }
 
+    /**
+     * DTO containing statistics for a single notification channel.
+     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -38,6 +47,9 @@ public class AnalyticsDto {
         private double avgDeliveryTimeMs;
     }
 
+    /**
+     * Request DTO for date range queries.
+     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -49,6 +61,9 @@ public class AnalyticsDto {
         private String channel;
     }
 
+    /**
+     * DTO containing user engagement statistics.
+     */
     @Data
     @Builder
     @NoArgsConstructor

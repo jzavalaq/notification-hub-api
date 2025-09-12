@@ -10,8 +10,18 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Entity representing a webhook endpoint.
+ * <p>
+ * Webhooks are called when subscribed events occur, allowing external
+ * systems to receive real-time notifications about delivery status.
+ * </p>
+ */
 @Entity
-@Table(name = "webhook_endpoints")
+@Table(name = "webhook_endpoints", indexes = {
+    @Index(name = "idx_webhook_endpoints_user_id", columnList = "userId"),
+    @Index(name = "idx_webhook_endpoints_status", columnList = "status")
+})
 @Data
 @Builder
 @NoArgsConstructor

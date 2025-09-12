@@ -6,6 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * Repository interface for WebhookEndpoint entity.
+ */
 @Repository
 public interface WebhookEndpointRepository extends JpaRepository<WebhookEndpoint, Long> {
 

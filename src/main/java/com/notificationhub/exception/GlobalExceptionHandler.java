@@ -15,7 +15,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+/**
+ * Global exception handler for REST API endpoints.
+ * <p>
+ * Centralizes exception handling across all controllers, providing
+ * consistent error response format and appropriate HTTP status codes.
+ * </p>
+ */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -27,7 +35,7 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.builder()
                         .timestamp(Instant.now())
                         .status(HttpStatus.NOT_FOUND.value())
-                        .error("Not Found")
+                        .error(HttpStatus.NOT_FOUND.getReasonPhrase())
                         .message(ex.getMessage())
                         .build());
     }
@@ -39,7 +47,7 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.builder()
                         .timestamp(Instant.now())
                         .status(HttpStatus.CONFLICT.value())
-                        .error("Conflict")
+                        .error(HttpStatus.CONFLICT.getReasonPhrase())
                         .message(ex.getMessage())
                         .build());
     }
@@ -51,7 +59,19 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.builder()
                         .timestamp(Instant.now())
                         .status(HttpStatus.BAD_REQUEST.value())
-                        .error("Bad Request")
+                        .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                        .message(ex.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.builder()
+                        .timestamp(Instant.now())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
                         .message(ex.getMessage())
                         .build());
     }
@@ -71,7 +91,7 @@ public class GlobalExceptionHandler {
                         .timestamp(Instant.now())
                         .status(HttpStatus.BAD_REQUEST.value())
                         .error("Validation Failed")
-                        .message("Input validation failed")
+                        .message("Validation failed for one or more fields")
                         .errors(errors)
                         .build());
     }
@@ -83,9 +103,21 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.builder()
                         .timestamp(Instant.now())
                         .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                        .error("Internal Server Error")
+                        .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
                         .message("An unexpected error occurred")
                         .build());
+    }
+
+    /**
+     * Standard API error response format.
+     * Format: {"error": "message", "status": 400}
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ApiErrorResponse {
+        private String error;
+        private int status;
     }
 
     @Data

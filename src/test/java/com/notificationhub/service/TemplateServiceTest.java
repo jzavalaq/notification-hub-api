@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class TemplateServiceTest {
 
     @Mock

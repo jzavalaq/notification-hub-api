@@ -15,12 +15,21 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.notificationhub.util.AppConstants;
+
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * Service for managing notification templates.
+ * <p>
+ * Provides CRUD operations and template rendering capabilities for
+ * reusable notification templates across multiple channels.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,7 +37,6 @@ public class TemplateService {
 
     private final NotificationTemplateRepository templateRepository;
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{(\\w+)}}");
-    private static final int MAX_PAGE_SIZE = 100;
 
     @Transactional
     public TemplateDto.Response createTemplate(TemplateDto.CreateRequest request) {
@@ -42,7 +50,7 @@ public class TemplateService {
                 .subject(request.getSubject())
                 .body(request.getBody())
                 .channel(request.getChannel())
-                .language(request.getLanguage() != null ? request.getLanguage() : "en")
+                .language(request.getLanguage() != null ? request.getLanguage() : AppConstants.DEFAULT_LANGUAGE)
                 .status(NotificationTemplate.TemplateStatus.ACTIVE)
                 .build();
 
@@ -86,9 +94,9 @@ public class TemplateService {
 
     @Transactional(readOnly = true)
     public PageResponse<TemplateDto.Response> getAllTemplates(int page, int size, NotificationTemplate.TemplateStatus status) {
-        int safeSize = Math.min(size, MAX_PAGE_SIZE);
-        if (page < 0) page = 0;
-        if (safeSize < 1) safeSize = 10;
+        int safeSize = Math.min(size, AppConstants.MAX_PAGE_SIZE);
+        if (page < 0) page = AppConstants.DEFAULT_PAGE_NUMBER;
+        if (safeSize < 1) safeSize = AppConstants.DEFAULT_PAGE_SIZE;
 
         Pageable pageable = PageRequest.of(page, safeSize, Sort.by("createdAt").descending());
         Page<NotificationTemplate> templates;

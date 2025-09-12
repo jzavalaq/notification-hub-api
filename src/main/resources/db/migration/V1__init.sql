@@ -18,6 +18,7 @@ CREATE TABLE notification_templates (
 CREATE INDEX idx_notification_templates_code ON notification_templates(code);
 CREATE INDEX idx_notification_templates_channel ON notification_templates(channel);
 CREATE INDEX idx_notification_templates_status ON notification_templates(status);
+CREATE INDEX idx_notification_templates_language ON notification_templates(language);
 
 -- Notification Preferences
 CREATE TABLE notification_preferences (
@@ -80,6 +81,7 @@ CREATE INDEX idx_notifications_status ON notifications(status);
 CREATE INDEX idx_notifications_channel ON notifications(channel);
 CREATE INDEX idx_notifications_created_at ON notifications(created_at);
 CREATE INDEX idx_notifications_scheduled_at ON notifications(scheduled_at);
+CREATE INDEX idx_notifications_status_retry ON notifications(status, retry_count);
 
 -- Notification Metadata (key-value pairs)
 CREATE TABLE notification_metadata (
@@ -137,6 +139,7 @@ CREATE TABLE webhook_deliveries (
 CREATE INDEX idx_webhook_deliveries_webhook_id ON webhook_deliveries(webhook_id);
 CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
 CREATE INDEX idx_webhook_deliveries_next_retry_at ON webhook_deliveries(next_retry_at);
+CREATE INDEX idx_webhook_deliveries_status_retry ON webhook_deliveries(status, next_retry_at);
 
 -- Notification Audit
 CREATE TABLE notification_audit (

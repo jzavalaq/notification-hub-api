@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 @Entity
-@Table(name = "notification_audit")
+@Table(name = "notification_audit", indexes = {
+    @Index(name = "idx_notification_audit_notification_id", columnList = "notification_id"),
+    @Index(name = "idx_notification_audit_created_at", columnList = "createdAt")
+})
 @Data
 @Builder
 @NoArgsConstructor

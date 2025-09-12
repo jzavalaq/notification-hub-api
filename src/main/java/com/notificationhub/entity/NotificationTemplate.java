@@ -8,8 +8,20 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+/**
+ * Entity representing a reusable notification template.
+ * <p>
+ * Templates support variable substitution using {{variableName}} syntax
+ * and can be reused across multiple notifications.
+ * </p>
+ */
 @Entity
-@Table(name = "notification_templates")
+@Table(name = "notification_templates", indexes = {
+    @Index(name = "idx_notification_templates_code", columnList = "code"),
+    @Index(name = "idx_notification_templates_channel", columnList = "channel"),
+    @Index(name = "idx_notification_templates_status", columnList = "status"),
+    @Index(name = "idx_notification_templates_language", columnList = "language")
+})
 @Data
 @Builder
 @NoArgsConstructor

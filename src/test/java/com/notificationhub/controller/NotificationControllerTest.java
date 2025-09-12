@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(NotificationController.class)
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class NotificationControllerTest {
 
     @Autowired
@@ -127,7 +127,7 @@ class NotificationControllerTest {
 
         when(notificationService.markAsDelivered(1L)).thenReturn(deliveredResponse);
 
-        mockMvc.perform(post("/api/v1/notifications/1/deliver")
+        mockMvc.perform(patch("/api/v1/notifications/1/deliver")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DELIVERED"));
@@ -144,7 +144,7 @@ class NotificationControllerTest {
 
         when(notificationService.markAsRead(1L)).thenReturn(readResponse);
 
-        mockMvc.perform(post("/api/v1/notifications/1/read")
+        mockMvc.perform(patch("/api/v1/notifications/1/read")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("READ"));

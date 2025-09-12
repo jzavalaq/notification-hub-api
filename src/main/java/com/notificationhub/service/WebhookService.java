@@ -9,6 +9,7 @@ import com.notificationhub.exception.DuplicateResourceException;
 import com.notificationhub.exception.ResourceNotFoundException;
 import com.notificationhub.repository.WebhookDeliveryRepository;
 import com.notificationhub.repository.WebhookEndpointRepository;
+import com.notificationhub.util.AppConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,13 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+/**
+ * Service for managing webhook endpoints and deliveries.
+ * <p>
+ * Handles webhook CRUD operations, event triggering, delivery tracking,
+ * and retry logic with exponential backoff.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -44,7 +52,6 @@ public class WebhookService {
     private final WebhookDeliveryRepository deliveryRepository;
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
-    private static final int MAX_PAGE_SIZE = 100;
 
     @Transactional
     public WebhookDto.Response createWebhook(WebhookDto.CreateRequest request) {
@@ -54,8 +61,8 @@ public class WebhookService {
                 .url(request.getUrl())
                 .secret(request.getSecret() != null ? request.getSecret() : generateSecret())
                 .subscribedEvents(request.getSubscribedEvents())
-                .maxRetries(request.getMaxRetries() != null ? request.getMaxRetries() : 5)
-                .timeoutSeconds(request.getTimeoutSeconds() != null ? request.getTimeoutSeconds() : 30)
+                .maxRetries(request.getMaxRetries() != null ? request.getMaxRetries() : AppConstants.DEFAULT_WEBHOOK_MAX_RETRIES)
+                .timeoutSeconds(request.getTimeoutSeconds() != null ? request.getTimeoutSeconds() : AppConstants.DEFAULT_WEBHOOK_TIMEOUT_SECONDS)
                 .status(WebhookEndpoint.WebhookStatus.ACTIVE)
                 .build();
 
@@ -100,9 +107,9 @@ public class WebhookService {
 
     @Transactional(readOnly = true)
     public PageResponse<WebhookDto.Response> getAllWebhooks(int page, int size) {
-        int safeSize = Math.min(size, MAX_PAGE_SIZE);
-        if (page < 0) page = 0;
-        if (safeSize < 1) safeSize = 10;
+        int safeSize = Math.min(size, AppConstants.MAX_PAGE_SIZE);
+        if (page < 0) page = AppConstants.DEFAULT_PAGE_NUMBER;
+        if (safeSize < 1) safeSize = AppConstants.DEFAULT_PAGE_SIZE;
 
         Pageable pageable = PageRequest.of(page, safeSize, Sort.by("createdAt").descending());
         Page<WebhookEndpoint> webhooks = webhookRepository.findAll(pageable);
@@ -149,8 +156,9 @@ public class WebhookService {
         return CompletableFuture.completedFuture(null);
     }
 
+    @Async
     @Transactional
-    public void deliverWebhook(WebhookEndpoint webhook, Notification notification, WebhookEndpoint.WebhookEventType eventType) {
+    public CompletableFuture<Void> deliverWebhookAsync(WebhookEndpoint webhook, Notification notification, WebhookEndpoint.WebhookEventType eventType) {
         String payload;
         try {
             Map<String, Object> payloadMap = new HashMap<>();
@@ -163,7 +171,7 @@ public class WebhookService {
             payload = objectMapper.writeValueAsString(payloadMap);
         } catch (Exception e) {
             log.error("Failed to serialize webhook payload: {}", e.getMessage());
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         WebhookDelivery delivery = WebhookDelivery.builder()
@@ -176,40 +184,49 @@ public class WebhookService {
                 .build();
 
         delivery = deliveryRepository.save(delivery);
+        final WebhookDelivery finalDelivery = delivery;
+        final String finalPayload = payload;
 
-        try {
-            String signature = generateSignature(payload, webhook.getSecret());
+        String signature = generateSignature(payload, webhook.getSecret());
 
-            WebClient client = webClientBuilder
-                    .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024))
-                    .build();
+        WebClient client = webClientBuilder
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(AppConstants.WEBHOOK_MAX_IN_MEMORY_SIZE))
+                .build();
 
-            Integer statusCode = client.post()
-                    .uri(webhook.getUrl())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("X-Webhook-Signature", signature)
-                    .header("X-Webhook-Event", eventType.name())
-                    .body(Mono.just(payload), String.class)
-                    .retrieve()
-                    .toEntity(String.class)
-                    .timeout(Duration.ofSeconds(webhook.getTimeoutSeconds()))
-                    .map(response -> response.getStatusCode().value())
-                    .onErrorReturn(0)
-                    .block();
+        return client.post()
+                .uri(webhook.getUrl())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Webhook-Signature", signature)
+                .header("X-Webhook-Event", eventType.name())
+                .body(Mono.just(payload), String.class)
+                .retrieve()
+                .toEntity(String.class)
+                .timeout(Duration.ofSeconds(webhook.getTimeoutSeconds()))
+                .map(response -> response.getStatusCode().value())
+                .onErrorReturn(0)
+                .toFuture()
+                .thenAccept(statusCode -> {
+                    if (statusCode >= 200 && statusCode < 300) {
+                        finalDelivery.setStatus(WebhookDelivery.DeliveryStatus.DELIVERED);
+                        finalDelivery.setStatusCode(statusCode);
+                        finalDelivery.setDeliveredAt(Instant.now());
+                        log.info("Webhook {} delivered successfully", webhook.getId());
+                    } else {
+                        handleDeliveryFailure(finalDelivery, statusCode, "HTTP error");
+                    }
+                    deliveryRepository.save(finalDelivery);
+                })
+                .exceptionally(ex -> {
+                    handleDeliveryFailure(finalDelivery, 0, ex.getMessage());
+                    deliveryRepository.save(finalDelivery);
+                    return null;
+                });
+    }
 
-            if (statusCode != null && statusCode >= 200 && statusCode < 300) {
-                delivery.setStatus(WebhookDelivery.DeliveryStatus.DELIVERED);
-                delivery.setStatusCode(statusCode);
-                delivery.setDeliveredAt(Instant.now());
-                log.info("Webhook {} delivered successfully", webhook.getId());
-            } else {
-                handleDeliveryFailure(delivery, statusCode != null ? statusCode : 0, "HTTP error");
-            }
-        } catch (Exception e) {
-            handleDeliveryFailure(delivery, 0, e.getMessage());
-        }
-
-        deliveryRepository.save(delivery);
+    @Transactional
+    public void deliverWebhook(WebhookEndpoint webhook, Notification notification, WebhookEndpoint.WebhookEventType eventType) {
+        // Delegate to async method for non-blocking delivery
+        deliverWebhookAsync(webhook, notification, eventType);
     }
 
     private void handleDeliveryFailure(WebhookDelivery delivery, int statusCode, String errorMessage) {
@@ -223,8 +240,9 @@ public class WebhookService {
             log.error("Webhook delivery failed after {} attempts: {}", delivery.getAttemptCount(), errorMessage);
         } else {
             delivery.setStatus(WebhookDelivery.DeliveryStatus.RETRYING);
-            // Exponential backoff: 1min, 5min, 15min, 1hr, 6hr
-            long delayMinutes = (long) Math.pow(6, delivery.getAttemptCount() - 1);
+            // Exponential backoff using predefined delays
+            int attemptIndex = Math.min(delivery.getAttemptCount() - 1, AppConstants.WEBHOOK_RETRY_BACKOFF_MINUTES.length - 1);
+            long delayMinutes = AppConstants.WEBHOOK_RETRY_BACKOFF_MINUTES[attemptIndex];
             delivery.setNextRetryAt(Instant.now().plusSeconds(delayMinutes * 60));
             log.warn("Webhook delivery failed, will retry in {} minutes", delayMinutes);
         }

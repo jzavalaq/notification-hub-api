@@ -3,8 +3,10 @@ package com.notificationhub.dto;
 import com.notificationhub.entity.Notification;
 import com.notificationhub.entity.NotificationPreference;
 import com.notificationhub.entity.NotificationTemplate;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,23 +15,29 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Data Transfer Objects for notification operations.
+ */
 public class NotificationDto {
 
+    /**
+     * Request DTO for sending a single notification.
+     */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SendRequest {
-        @NotBlank
+        @NotBlank(message = "User ID is required")
         private String userId;
 
-        @NotBlank
+        @NotBlank(message = "Notification type is required")
         private String notificationType;
 
-        @NotNull
+        @NotNull(message = "Channel is required")
         private NotificationTemplate.ChannelType channel;
 
-        @NotBlank
+        @NotBlank(message = "Recipient is required")
         private String recipient;
 
         private String subject;
@@ -47,15 +55,18 @@ public class NotificationDto {
         private Instant scheduledAt;
     }
 
+    /**
+     * Request DTO for sending batch notifications.
+     */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class BatchSendRequest {
-        @NotBlank
+        @NotBlank(message = "Notification type is required")
         private String notificationType;
 
-        @NotNull
+        @NotNull(message = "Channel is required")
         private NotificationTemplate.ChannelType channel;
 
         private String subject;
@@ -66,24 +77,36 @@ public class NotificationDto {
 
         private Map<String, String> templateVariables;
 
-        @NotNull
+        @NotNull(message = "Recipients list is required")
+        @Size(min = 1, max = 1000, message = "Recipients list must contain between 1 and 1000 recipients")
+        @Valid
         private java.util.List<Recipient> recipients;
 
         private NotificationPreference.Priority priority;
 
         private Instant scheduledAt;
 
+        /**
+         * DTO for a single recipient in a batch request.
+         */
         @Data
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Recipient {
+            @NotBlank(message = "User ID is required")
             private String userId;
+
+            @NotBlank(message = "Recipient address is required")
             private String recipient;
+
             private Map<String, String> variables;
         }
     }
 
+    /**
+     * Response DTO for notification operations.
+     */
     @Data
     @Builder
     @NoArgsConstructor

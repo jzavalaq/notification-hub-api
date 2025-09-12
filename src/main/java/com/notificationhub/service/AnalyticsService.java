@@ -4,6 +4,7 @@ import com.notificationhub.dto.AnalyticsDto;
 import com.notificationhub.entity.Notification;
 import com.notificationhub.entity.NotificationTemplate;
 import com.notificationhub.repository.NotificationRepository;
+import com.notificationhub.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service for notification analytics and reporting.
+ * <p>
+ * Provides metrics calculation, channel statistics, and user engagement
+ * analytics for notification performance monitoring.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -24,7 +32,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public AnalyticsDto.Metrics getMetrics(Instant startDate, Instant endDate) {
-        if (startDate == null) startDate = Instant.now().minus(30, ChronoUnit.DAYS);
+        if (startDate == null) startDate = Instant.now().minus(AppConstants.DEFAULT_ANALYTICS_DAYS, ChronoUnit.DAYS);
         if (endDate == null) endDate = Instant.now();
 
         long totalSent = notificationRepository.countByStatusAndDateRange(Notification.NotificationStatus.SENT, startDate, endDate);
@@ -63,7 +71,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public List<AnalyticsDto.ChannelStats> getChannelStats(Instant startDate, Instant endDate) {
-        if (startDate == null) startDate = Instant.now().minus(30, ChronoUnit.DAYS);
+        if (startDate == null) startDate = Instant.now().minus(AppConstants.DEFAULT_ANALYTICS_DAYS, ChronoUnit.DAYS);
         if (endDate == null) endDate = Instant.now();
 
         List<AnalyticsDto.ChannelStats> stats = new java.util.ArrayList<>();
@@ -90,7 +98,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public AnalyticsDto.EngagementStats getUserEngagement(String userId, Instant startDate, Instant endDate) {
-        if (startDate == null) startDate = Instant.now().minus(30, ChronoUnit.DAYS);
+        if (startDate == null) startDate = Instant.now().minus(AppConstants.DEFAULT_ANALYTICS_DAYS, ChronoUnit.DAYS);
         if (endDate == null) endDate = Instant.now();
 
         List<Notification> notifications = notificationRepository.findByUserIdAndStatus(userId, Notification.NotificationStatus.DELIVERED);

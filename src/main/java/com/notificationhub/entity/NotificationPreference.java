@@ -11,8 +11,17 @@ import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Entity representing user notification preferences.
+ * <p>
+ * Stores user preferences for enabled channels, opted-out notification types,
+ * quiet hours configuration, and default priority settings.
+ * </p>
+ */
 @Entity
-@Table(name = "notification_preferences")
+@Table(name = "notification_preferences", indexes = {
+    @Index(name = "idx_notification_preferences_user_id", columnList = "userId")
+})
 @Data
 @Builder
 @NoArgsConstructor

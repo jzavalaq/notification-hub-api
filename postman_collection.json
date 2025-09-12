@@ -257,7 +257,7 @@
         {
           "name": "Mark as Delivered",
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/notifications/1/deliver",
@@ -269,7 +269,7 @@
         {
           "name": "Mark as Read",
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/notifications/1/read",

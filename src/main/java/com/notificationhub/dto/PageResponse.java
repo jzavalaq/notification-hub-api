@@ -7,6 +7,11 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Generic paginated response wrapper.
+ *
+ * @param <T> the type of content in the page
+ */
 @Data
 @Builder
 @NoArgsConstructor
