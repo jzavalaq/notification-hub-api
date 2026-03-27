@@ -3,157 +3,89 @@
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
 [![WebSocket](https://img.shields.io/badge/WebSocket-STOMP-purple)](https://stomp.github.io/)
-[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](Dockerfile)
 [![Redis](https://img.shields.io/badge/Redis-7+-red?logo=redis)](https://redis.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue?logo=postgresql)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](Dockerfile)
+[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![CI](https://github.com/jzavalaq/notification-hub-api/actions/workflows/ci.yml/badge.svg)](https://github.com/jzavalaq/notification-hub-api/actions/workflows/ci.yml)
 
-A multi-channel notification and communication hub supporting email, SMS, push notifications, in-app messaging, and **real-time WebSocket notifications** with Redis caching and webhook integrations.
+> A multi-channel notification platform with real-time WebSocket delivery, template management, user preferences, and webhook integrations.
 
-## Features
+**Live Demo:** _Coming soon_ | **Swagger UI:** _Coming soon_
 
-- **Multi-Channel Delivery**: Email, SMS, Push, In-App notifications
-- **Real-Time WebSocket**: STOMP over WebSocket with SockJS fallback
-- **Template Management**: Dynamic templates with variable interpolation
-- **User Preferences**: Quiet hours, channel preferences, opt-in/out
-- **Webhook Integrations**: Event-driven notifications with retry logic
-- **Redis Caching**: High-performance template and preference caching
-- **Audit Trail**: Complete notification lifecycle tracking
+---
 
-## Tech Stack
+## Key Features
 
-| Technology | Version |
-|------------|---------|
-| Java | 21 |
-| Spring Boot | 3.2.5 |
-| Spring WebSocket | STOMP + SockJS |
-| PostgreSQL | 15+ |
-| Redis | 7+ |
-| H2 (dev) | 2.x |
+- **Multi-Channel Delivery**: Email, SMS, Push, and In-App notifications
+- **Real-Time WebSocket**: STOMP over WebSocket with SockJS fallback for instant delivery
+- **Template Management**: Dynamic templates with variable interpolation and caching
+- **User Preferences**: Quiet hours, channel preferences, per-type opt-in/out
+- **Webhook Integrations**: Event-driven notifications with retry logic and delivery tracking
+- **Analytics Dashboard**: Notification statistics, delivery rates, and engagement metrics
+- **Audit Trail**: Complete notification lifecycle tracking for compliance
 
-## Quick Start
+---
 
-### Development Mode
+## Architecture
 
-```bash
-# Clone and run
-git clone https://github.com/jzavalaq/notification-hub-api.git
-cd notification-hub-api
+```mermaid
+flowchart TB
+    subgraph Clients
+        WebApp[Web Application]
+        MobileApp[Mobile App]
+        Backend[Backend Services]
+    end
 
-# Run with Maven (uses H2 in-memory database)
-mvn spring-boot:run
+    subgraph "Notification Hub :8080"
+        RestAPI[REST API<br/>Templates, Preferences, Webhooks]
+        WebSocket[WebSocket Server<br/>STOMP /ws/notifications]
+    end
 
-# App available at http://localhost:8080
-# Swagger UI at http://localhost:8080/swagger-ui.html
-# H2 Console at http://localhost:8080/h2-console (when H2_CONSOLE_ENABLED=true)
-```
+    subgraph "Services"
+        NotificationService[Notification Service]
+        TemplateService[Template Service]
+        PreferenceService[Preference Service]
+        WebhookService[Webhook Service]
+        AnalyticsService[Analytics Service]
+        WebSocketService[WebSocket Service]
+    end
 
-### Quick Start with Docker Compose (Recommended for Production-like Testing)
+    subgraph "Channels"
+        Email[Email Provider]
+        SMS[SMS Gateway]
+        Push[Push Service]
+        InApp[In-App Delivery]
+    end
 
-```bash
-# Copy environment template
-cp .env.example .env
+    subgraph "Data Layer"
+        PostgreSQL[(PostgreSQL<br/>Notifications, Templates)]
+        Redis[(Redis<br/>Template Cache)]
+    end
 
-# Edit .env with your values (especially JWT_SECRET and DB_PASSWORD)
-nano .env
+    WebApp --> RestAPI
+    WebApp --> WebSocket
+    MobileApp --> RestAPI
+    Backend --> RestAPI
 
-# Start all services (app + PostgreSQL + Redis)
-docker-compose up -d
+    RestAPI --> NotificationService
+    WebSocket --> WebSocketService
 
-# Check logs
-docker-compose logs -f app
+    NotificationService --> TemplateService
+    NotificationService --> PreferenceService
+    NotificationService --> WebhookService
+    NotificationService --> AnalyticsService
 
-# App available at http://localhost:8080
-# Swagger UI at http://localhost:8080/swagger-ui.html
-# Health check at http://localhost:8080/actuator/health
-```
+    NotificationService --> Email
+    NotificationService --> SMS
+    NotificationService --> Push
+    NotificationService --> InApp
+    WebSocketService --> InApp
 
-## Docker Run
-
-```bash
-# Build the Docker image
-docker build -t notification-hub-api .
-
-# Run with environment variables
-docker run -d \
-  -p 8080:8080 \
-  -e JWT_SECRET=your-secure-jwt-secret-min-256-bits \
-  -e DB_URL=jdbc:postgresql://postgres:5432/notificationhub \
-  -e DB_USERNAME=notificationhub \
-  -e DB_PASSWORD=your-password \
-  -e ALLOWED_ORIGINS=http://localhost:3000 \
-  notification-hub-api
-
-# Run with docker-compose (recommended)
-docker-compose up -d
-```
-
-## Prerequisites
-
-- Java 21 or higher
-- Maven 3.8+
-- PostgreSQL 15+ (production) or H2 (development)
-- Redis 7+ (optional, for caching)
-- Docker and Docker Compose (for containerized deployment)
-
-## Build Instructions
-
-```bash
-# Compile the project
-mvn compile
-
-# Run tests
-mvn test
-
-# Package the application
-mvn package -DskipTests
-
-# Run the JAR
-java -jar target/notification-hub-api-1.0.0-SNAPSHOT.jar
-```
-
-## API Examples
-
-### Templates
-
-Note: This API uses JWT authentication. Configure your JWT_SECRET in the environment variables or .env file before making authenticated requests.
-
-```bash
-TOKEN="your-jwt-token"
-
-# Create a notification template
-curl -X POST http://localhost:8080/api/v1/templates \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "welcome_email",
-    "channel": "EMAIL",
-    "subject": "Welcome, {{userName}}!",
-    "body": "Hello {{userName}}, welcome to our platform!",
-    "variables": ["userName"]
-  }'
-
-# List templates with pagination
-curl -X GET "http://localhost:8080/api/v1/templates?page=0&size=20" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Send Notifications
-
-```bash
-# Send notification using template
-curl -X POST http://localhost:8080/api/v1/notifications/send \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "templateName": "welcome_email",
-    "recipient": "newuser@example.com",
-    "variables": {"userName": "John"},
-    "channels": ["EMAIL"]
-  }'
-
-# Get user notifications with pagination
-curl -X GET "http://localhost:8080/api/v1/notifications/user/user123?page=0&size=20" \
-  -H "Authorization: Bearer $TOKEN"
+    TemplateService --> PostgreSQL
+    TemplateService --> Redis
+    NotificationService --> PostgreSQL
+    AnalyticsService --> PostgreSQL
 ```
 
 ---
@@ -162,10 +94,7 @@ curl -X GET "http://localhost:8080/api/v1/notifications/user/user123?page=0&size
 
 ### Connection
 
-Connect to the WebSocket endpoint with JWT authentication:
-
 ```javascript
-// Using SockJS and STOMP.js
 const socket = new SockJS('http://localhost:8080/ws/notifications');
 const stompClient = Stomp.over(socket);
 
@@ -179,139 +108,235 @@ stompClient.connect(
     // Subscribe to personal notifications
     stompClient.subscribe('/user/queue/notifications', function(message) {
       const notification = JSON.parse(message.body);
-      console.log('Received notification:', notification);
+      console.log('Received:', notification);
     });
 
-    // Subscribe to broadcast notifications
+    // Subscribe to broadcasts
     stompClient.subscribe('/topic/broadcast', function(message) {
       console.log('Broadcast:', JSON.parse(message.body));
     });
-
-    // Subscribe to user presence
-    stompClient.subscribe('/topic/presence', function(message) {
-      console.log('Presence update:', JSON.parse(message.body));
-    });
-  },
-  function(error) {
-    console.error('Connection error:', error);
   }
 );
 ```
 
-### Send Real-Time Notification
+### Send Notification
 
 ```javascript
-// Send notification to specific user
+// Send to specific user
 stompClient.send('/app/notify.send/john_doe', {}, JSON.stringify({
   type: 'ALERT',
   title: 'New Order',
-  message: 'You have received a new order #12345',
-  data: { orderId: '12345', amount: 99.99 }
+  message: 'Order #12345 received',
+  data: { orderId: '12345' }
 }));
-
-// Broadcast to all users
-stompClient.send('/app/notify.broadcast', {}, JSON.stringify({
-  type: 'SYSTEM',
-  title: 'Maintenance Notice',
-  message: 'System maintenance in 30 minutes'
-}));
-```
-
-### Typing Indicator
-
-```javascript
-// Send typing indicator
-stompClient.send('/app/notify.typing', {}, JSON.stringify({
-  toUser: 'john_doe',
-  isTyping: true,
-  conversationId: 'conv-123'
-}));
-
-// Subscribe to typing indicators
-stompClient.subscribe('/user/queue/typing', function(message) {
-  const data = JSON.parse(message.body);
-  console.log(data.fromUser + ' is typing: ' + data.isTyping);
-});
-```
-
-### User Presence
-
-```javascript
-// Update your presence status
-stompClient.send('/app/presence', {}, JSON.stringify({
-  status: 'ONLINE',
-  message: 'Available for chat'
-}));
-
-// Presence update format:
-// { user: 'john_doe', status: 'ONLINE', message: 'Available', timestamp: '2024-...' }
-```
-
-### Notification Types
-
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `ALERT` | High priority alerts | New orders, security alerts |
-| `INFO` | Informational | System updates, tips |
-| `SUCCESS` | Success confirmations | Payment received, task completed |
-| `WARNING` | Warnings | Low balance, expiring soon |
-| `SYSTEM` | System broadcasts | Maintenance, downtime |
-| `CHAT` | Chat messages | New message, typing indicator |
-
-### Notification Payload Format
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "type": "ALERT",
-  "title": "New Order Received",
-  "message": "Order #12345 has been placed",
-  "data": {
-    "orderId": "12345",
-    "amount": 99.99,
-    "currency": "USD"
-  },
-  "fromUser": "system",
-  "timestamp": "2024-03-23T10:30:00Z",
-  "read": false
-}
 ```
 
 ---
 
-## Webhooks
+## Architectural Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **STOMP Protocol** | Standard messaging protocol over WebSocket with subscription support |
+| **SockJS Fallback** | Graceful degradation for environments blocking WebSocket |
+| **Template Caching** | Redis caching for high-throughput template rendering |
+| **Preference Layer** | User-controlled notification preferences reduce noise |
+| **Webhook Retry** | Exponential backoff for reliable webhook delivery |
+| **Audit Logging** | Compliance-ready notification trail |
+
+---
+
+## Tech Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Java | 21 | Runtime environment |
+| Spring Boot | 3.2.5 | Application framework |
+| Spring WebSocket | STOMP + SockJS | Real-time messaging |
+| Spring Security | 6.x | JWT authentication |
+| PostgreSQL | 15+ | Primary database |
+| Redis | 7+ | Template caching |
+| H2 | 2.x | Development database |
+| SpringDoc OpenAPI | 2.5.0 | API documentation |
+
+---
+
+## Quick Start
+
+### Option 1: Docker Compose (Recommended)
 
 ```bash
-# Register a webhook endpoint
+# Clone the repository
+git clone https://github.com/jzavalaq/notification-hub-api.git
+cd notification-hub-api
+
+# Copy environment file
+cp .env.example .env
+
+# Start all services (App + PostgreSQL + Redis)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f app
+```
+
+Services available:
+- **API:** http://localhost:8080
+- **Swagger UI:** http://localhost:8080/swagger-ui.html
+- **WebSocket:** ws://localhost:8080/ws/notifications
+- **Health Check:** http://localhost:8080/actuator/health
+
+### Option 2: Local Development (H2)
+
+```bash
+# Build and run with H2
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+# H2 Console: http://localhost:8080/h2-console
+```
+
+---
+
+## API Examples
+
+### Templates
+
+```bash
+TOKEN="your-jwt-token"
+
+# Create notification template
+curl -X POST http://localhost:8080/api/v1/templates \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "order_confirmation",
+    "channel": "EMAIL",
+    "subject": "Order #{{orderNumber}} Confirmed",
+    "body": "Hi {{userName}}, your order has been confirmed!",
+    "variables": ["orderNumber", "userName"]
+  }'
+
+# List templates
+curl -X GET "http://localhost:8080/api/v1/templates?page=0&size=20" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Send Notifications
+
+```bash
+# Send using template
+curl -X POST http://localhost:8080/api/v1/notifications/send \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateName": "order_confirmation",
+    "recipient": "user@example.com",
+    "variables": {
+      "orderNumber": "12345",
+      "userName": "John"
+    },
+    "channels": ["EMAIL", "IN_APP"]
+  }'
+
+# Get user notifications
+curl -X GET "http://localhost:8080/api/v1/notifications/user/user123?page=0&size=20" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Webhooks
+
+```bash
+# Register webhook endpoint
 curl -X POST http://localhost:8080/api/v1/webhooks \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Order Updates",
+    "name": "Order Webhook",
     "url": "https://example.com/webhooks/notifications",
     "events": ["notification.delivered", "notification.failed"],
     "secret": "webhook-secret-key"
   }'
-
-# List all webhooks with pagination
-curl -X GET "http://localhost:8080/api/v1/webhooks?page=0&size=20" \
-  -H "Authorization: Bearer $TOKEN"
-
-# Get webhooks for a specific user with pagination
-curl -X GET "http://localhost:8080/api/v1/webhooks/user/user123?page=0&size=20" \
-  -H "Authorization: Bearer $TOKEN"
 ```
 
-## Environment Variables
+### User Preferences
 
-| Variable | Description |
-|----------|-------------|
-| `DB_URL` | PostgreSQL URL |
-| `DB_USERNAME` | Database user |
-| `DB_PASSWORD` | Database password |
-| `REDIS_URL` | Redis connection URL |
-| `JWT_SECRET` | JWT signing key |
+```bash
+# Set notification preferences
+curl -X PUT http://localhost:8080/api/v1/preferences/user123 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emailEnabled": true,
+    "smsEnabled": false,
+    "pushEnabled": true,
+    "quietHoursStart": "22:00",
+    "quietHoursEnd": "08:00"
+  }'
+```
+
+---
+
+## Notification Types
+
+| Type | Priority | Use Case |
+|------|----------|----------|
+| `ALERT` | High | Security alerts, new orders |
+| `INFO` | Normal | System updates, tips |
+| `SUCCESS` | Normal | Payment received, task completed |
+| `WARNING` | Medium | Low balance, expiring soon |
+| `SYSTEM` | High | Maintenance, downtime |
+| `CHAT` | Normal | Messages, typing indicators |
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_URL` | PostgreSQL connection URL | `jdbc:postgresql://localhost:5432/notificationhub` |
+| `DB_USERNAME` | Database username | `notification_user` |
+| `DB_PASSWORD` | Database password | _Required_ |
+| `REDIS_URL` | Redis connection URL | `redis://localhost:6379` |
+| `JWT_SECRET` | JWT signing key (256+ bits) | _Required_ |
+
+---
+
+## Project Structure
+
+```
+src/main/java/com/jzavalaq/notificationhub/
+├── config/          # WebSocket, Security, Redis configuration
+├── controller/      # REST API endpoints
+├── service/         # Business logic (Notification, Template, Webhook)
+├── repository/      # Data access layer
+├── entity/          # JPA entities
+├── dto/             # Request/Response DTOs
+├── security/        # JWT authentication
+└── exception/       # Custom exceptions
+```
+
+---
+
+## Testing
+
+```bash
+# Run all tests
+mvn test
+
+# Run with coverage
+mvn test jacoco:report
+```
+
+---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Author
+
+**Juan Zavala** - [GitHub](https://github.com/jzavalaq) - [LinkedIn](https://linkedin.com/in/juanzavalaq)
