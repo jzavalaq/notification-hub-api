@@ -3,7 +3,7 @@
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
 [![WebSocket](https://img.shields.io/badge/WebSocket-STOMP-purple)](https://stomp.github.io/)
-[![Redis](https://img.shields.io/badge/Redis-7+-red?logo=redis)](https://redis.io/)
+[![Redis](https://img.shields.io/badge/Redis-7+-red?logo=redis)](https://redis.io/) Redis-backed template caching with graceful degradation
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue?logo=postgresql)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](Dockerfile)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
@@ -19,7 +19,7 @@
 
 - **Multi-Channel Delivery**: Email, SMS, Push, and In-App notifications
 - **Real-Time WebSocket**: STOMP over WebSocket with SockJS fallback for instant delivery
-- **Template Management**: Dynamic templates with variable interpolation and caching
+- **Template Caching**: Redis-backed @Cacheable with 30-minute TTL in production, in-memory fallback for development
 - **User Preferences**: Quiet hours, channel preferences, per-type opt-in/out
 - **Webhook Integrations**: Event-driven notifications with retry logic and delivery tracking
 - **Analytics Dashboard**: Notification statistics, delivery rates, and engagement metrics
@@ -298,8 +298,36 @@ curl -X PUT http://localhost:8080/api/v1/preferences/user123 \
 | `DB_URL` | PostgreSQL connection URL | `jdbc:postgresql://localhost:5432/notificationhub` |
 | `DB_USERNAME` | Database username | `notification_user` |
 | `DB_PASSWORD` | Database password | _Required_ |
-| `REDIS_URL` | Redis connection URL | `redis://localhost:6379` |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `REDIS_PASSWORD` | Redis password (optional) | _Empty_ |
 | `JWT_SECRET` | JWT signing key (256+ bits) | _Required_ |
+
+### Cache Configuration
+
+| Profile | Backend | Template TTL | Notes |
+|---------|---------|--------------|-------|
+| dev     | In-memory (ConcurrentMap) | Session | No Redis required |
+| prod    | Redis 7+ | 30 minutes | Set `REDIS_HOST` and `REDIS_PORT` env vars |
+
+**Cache TTLs by Type:**
+| Cache Name | TTL | Purpose |
+|------------|-----|---------|
+| `templates` | 30 min | Notification templates |
+| `preferences` | 5 min | User notification preferences |
+| `notifications` | 10 min | Default for notification data |
+
+**To run with Redis locally:**
+```bash
+# Start Redis container
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# Enable Redis in application-dev.yml
+spring:
+  data:
+    redis:
+      enabled: true
+```
 
 ---
 

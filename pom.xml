@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.notificationhub</groupId>
+    <groupId>com.notification</groupId>
     <artifactId>notification-hub-api</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>notification-hub-api</name>

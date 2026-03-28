@@ -22,12 +22,20 @@ spring:
 # Redis disabled in dev (optional)
   data:
     redis:
+      enabled: false
       host: localhost
       port: 6379
+
+# Cache configuration
+# Redis is disabled in development
+# Templates and preferences use in-memory ConcurrentMapCache
+# To enable Redis locally:
+#   1. Run: docker run -p 6379:6379 redis:7-alpine
+#   2. Set spring.data.redis.enabled=true
 
 # Logging
 logging:
   level:
     root: INFO
-    com.notificationhub: DEBUG
+    com.notification.hub: DEBUG
     org.springframework.security: DEBUG

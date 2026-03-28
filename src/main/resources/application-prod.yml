@@ -26,13 +26,23 @@ spring:
     locations: classpath:db/migration
   data:
     redis:
+      enabled: true
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+
+# Redis is required in production for distributed caching
+# Set REDIS_HOST and REDIS_PORT environment variables before deploying
+# Example: REDIS_HOST=your-redis-host REDIS_PORT=6379
+#
+# Cache TTLs (configured in CacheConfig.java):
+# - templates: 30 minutes
+# - preferences: 5 minutes
+# - notifications: 10 minutes (default)
 
 # Logging
 logging:
   level:
     root: WARN
-    com.notificationhub: INFO
+    com.notification.hub: INFO
     org.springframework.security: WARN
